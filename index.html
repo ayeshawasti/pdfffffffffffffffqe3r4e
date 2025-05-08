@@ -6,7 +6,56 @@
 </head>
 <body>
   <h1>PDF Password Brute-Force Demo</h1>
-  <p>Open console (F12) to see progress.</p>
-  <script src="bruteforce.js"></script>
+  <p>Open console (F12) to see progress. Ensure your PDF is in the same directory as this file.</p>
+  <p><strong>Note:</strong> Update the <code>pdfPath</code> variable in the script to point to your PDF file.</p>
+  <script>
+    (async () => {
+      // Configure PDF.js
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
+
+      // Path to your PDF file (update this to your PDF's location)
+      const pdfPath = './protected.pdf'; // e.g., './protected.pdf' or 'path/to/your/protected.pdf'
+
+      // Function to try unlocking the PDF with a password
+      async function tryPassword(password) {
+        try {
+          const pdf = await pdfjsLib.getDocument({
+            url: pdfPath,
+            password: password
+          }).promise;
+          await pdf.getPage(1); // Attempt to load the first page
+          return true; // Password is correct
+        } catch (error) {
+          if (error.name === 'PasswordException') {
+            return false; // Wrong password
+          }
+          throw error; // Other errors (e.g., file not found)
+        }
+      }
+
+      // Brute-force loop for 4- to 6-digit passwords
+      const startTime = performance.now();
+      console.log('Starting brute-force attack...');
+
+      for (let i = 1000; i <= 999999; i++) { // Covers 4- to 6-digit numbers
+        const password = i.toString().padStart(6, '0'); // e.g., 001234
+        const isCorrect = await tryPassword(password);
+
+        if (isCorrect) {
+          const endTime = performance.now();
+          console.log(`Success! Password is: ${password}`);
+          console.log(`Time taken: ${(endTime - startTime) / 1000} seconds`);
+          return; // Stop once password is found
+        }
+
+        // Log progress every 1000 attempts to reduce console overhead
+        if (i % 1000 === 0) {
+          console.log(`Tried up to: ${password}`);
+        }
+      }
+
+      console.log('Password not found within range.');
+    })();
+  </script>
 </body>
 </html>
